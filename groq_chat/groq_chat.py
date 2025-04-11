@@ -10,16 +10,30 @@ load_dotenv()
 chatbot = Groq(
     api_key=os.environ.get("GROQ_API_KEY"),
 )
+SYSTEM_PROMPT = {
+    "role": "system",
+    "content": "你是一位專業且親切的 AI 助理，請用繁體中文回覆，並使用 Markdown 格式。"
+}
 
 
 def generate_response(message: str, context: ContextTypes.DEFAULT_TYPE):
-    """Generate a response to a message"""
-    context.user_data["messages"] = context.user_data.get("messages", []) + [
-        {
-            "role": "user",
-            "content": message,
-        }
-    ]
+    """產生 AI 回應"""
+
+    messages = context.user_data.get("messages", [])
+
+    # 如果對話歷史中還沒有 system prompt，就先加入
+    if not messages or messages[0].get("role") != "system":
+        messages.insert(0, SYSTEM_PROMPT)
+
+    # 加入使用者訊息
+    messages.append({
+        "role": "user",
+        "content": message,
+    })
+
+    # 更新 context 中的 messages
+    context.user_data["messages"] = messages
+
     response_queue = ""
     try:
         for resp in chatbot.chat.completions.create(
